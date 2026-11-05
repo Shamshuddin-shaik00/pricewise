@@ -122,7 +122,7 @@ Install the following software:
 
 ```bash
 git clone YOUR_GITHUB_REPOSITORY_URL
-```
+```https://github.com/Shamshuddin-shaik00/pricewise.git
 
 ### Step 2: Open the Project
 
