@@ -13,11 +13,14 @@ class AddPriceScreen extends StatefulWidget {
 class _AddPriceScreenState extends State<AddPriceScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  final TextEditingController shopController = TextEditingController();
-  final TextEditingController locationController = TextEditingController();
-  final TextEditingController priceController = TextEditingController();
+  final TextEditingController shopController =
+      TextEditingController();
 
-  String selectedProduct = 'Milk';
+  final TextEditingController locationController =
+      TextEditingController();
+
+  final TextEditingController priceController =
+      TextEditingController();
 
   final Map<String, String> products = {
     'Milk': '1',
@@ -25,6 +28,67 @@ class _AddPriceScreenState extends State<AddPriceScreen> {
     'Tomato': '3',
     'Apple': '4',
   };
+
+  String selectedProduct = 'Milk';
+
+  bool isSaving = false;
+
+  Future<void> submitPrice() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      isSaving = true;
+    });
+
+    final price = double.parse(priceController.text.trim());
+
+    try {
+      await Provider.of<PriceProvider>(
+        context,
+        listen: false,
+      ).addShopPrice(
+        productId: products[selectedProduct]!,
+        shopName: shopController.text.trim(),
+        area: locationController.text.trim(),
+        price: price,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Price saved successfully!'),
+          backgroundColor: Color(0xFF16834A),
+        ),
+      );
+
+      shopController.clear();
+      locationController.clear();
+      priceController.clear();
+
+      setState(() {
+        selectedProduct = 'Milk';
+        isSaving = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        isSaving = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Unable to save price. Please try again.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -34,48 +98,20 @@ class _AddPriceScreenState extends State<AddPriceScreen> {
     super.dispose();
   }
 
-  void submitPrice() {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    final price = double.parse(priceController.text.trim());
-
-    // Add the submitted price to Provider.
-    Provider.of<PriceProvider>(context, listen: false).addShopPrice(
-      productId: products[selectedProduct]!,
-      shopName: shopController.text.trim(),
-      area: locationController.text.trim(),
-      price: price,
-    );
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Price added successfully!'),
-        backgroundColor: Color(0xFF16834A),
-      ),
-    );
-
-    shopController.clear();
-    locationController.clear();
-    priceController.clear();
-
-    setState(() {
-      selectedProduct = 'Milk';
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7F5),
       appBar: AppBar(
         title: const Text(
-          'Add Product Price',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          'Add Shop Price',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF16834A),
+        foregroundColor: Colors.white,
       ),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Form(
@@ -83,137 +119,162 @@ class _AddPriceScreenState extends State<AddPriceScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+
+              const Center(
+                child: Icon(
+                  Icons.storefront,
+                  size: 70,
+                  color: Color(0xFF16834A),
+                ),
+              ),
+
+              const SizedBox(height: 10),
+
+              const Center(
+                child: Text(
+                  'Share a Local Shop Price',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 25),
+
+              // Product dropdown
               const Text(
-                'Share Local Shop Prices',
+                'Select Product',
                 style: TextStyle(
-                  fontSize: 23,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Help others find the best prices in their area.',
-                style: TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 25),
 
-              const Text(
-                'Select Product',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
               const SizedBox(height: 8),
 
               DropdownButtonFormField<String>(
-                value: selectedProduct,
+                initialValue: selectedProduct,
                 decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
+                  prefixIcon: const Icon(Icons.shopping_bag),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
                   ),
                 ),
                 items: products.keys.map((product) {
-                  return DropdownMenuItem(
+                  return DropdownMenuItem<String>(
                     value: product,
                     child: Text(product),
                   );
                 }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      selectedProduct = value;
-                    });
-                  }
-                },
+                onChanged: isSaving
+                    ? null
+                    : (value) {
+                        if (value != null) {
+                          setState(() {
+                            selectedProduct = value;
+                          });
+                        }
+                      },
               ),
 
               const SizedBox(height: 20),
 
+              // Shop name
               const Text(
                 'Shop Name',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
+
               const SizedBox(height: 8),
 
               TextFormField(
                 controller: shopController,
+                enabled: !isSaving,
                 decoration: InputDecoration(
                   hintText: 'Enter shop name',
                   prefixIcon: const Icon(Icons.store),
-                  filled: true,
-                  fillColor: Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
                   ),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Please enter shop name';
                   }
+
                   return null;
                 },
               ),
 
               const SizedBox(height: 20),
 
+              // Location
               const Text(
-                'Shop Location',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                'Shop Location / Area',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
+
               const SizedBox(height: 8),
 
               TextFormField(
                 controller: locationController,
+                enabled: !isSaving,
                 decoration: InputDecoration(
-                  hintText: 'Enter shop area',
+                  hintText: 'Example: Guntur, Main Road',
                   prefixIcon: const Icon(Icons.location_on),
-                  filled: true,
-                  fillColor: Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
                   ),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Please enter shop location';
                   }
+
                   return null;
                 },
               ),
 
               const SizedBox(height: 20),
 
+              // Price
               const Text(
                 'Product Price (₹)',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
+
               const SizedBox(height: 8),
 
               TextFormField(
                 controller: priceController,
+                enabled: !isSaving,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Enter price',
+                  hintText: 'Enter product price',
                   prefixIcon: const Icon(Icons.currency_rupee),
-                  filled: true,
-                  fillColor: Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
                   ),
                 ),
                 validator: (value) {
-                  final price = double.tryParse(value?.trim() ?? '');
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter price';
+                  }
+
+                  final price = double.tryParse(value.trim());
 
                   if (price == null ||
                       !price.isFinite ||
                       price <= 0) {
-                    return 'Enter a valid price';
+                    return 'Enter a valid price greater than zero';
                   }
 
                   return null;
@@ -222,23 +283,34 @@ class _AddPriceScreenState extends State<AddPriceScreen> {
 
               const SizedBox(height: 30),
 
+              // Submit button
               SizedBox(
                 width: double.infinity,
                 height: 52,
-                child: ElevatedButton(
-                  onPressed: submitPrice,
+                child: ElevatedButton.icon(
+                  onPressed: isSaving ? null : submitPrice,
+                  icon: isSaving
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.save),
+                  label: Text(
+                    isSaving ? 'Saving...' : 'Save Price',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF16834A),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Submit Price',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
