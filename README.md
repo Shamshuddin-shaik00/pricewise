@@ -213,5 +213,9 @@ Testing helps verify the application's user interface and basic functionality.
 This project is developed for academic and educational purposes.
 
 ---
+## 📥 Download Application
 
+Download the latest Android APK:
+
+[Download PriceWise v1.0.0](https://github.com/Shamshuddin-shaik00/pricewise/releases/latest)
 **PriceWise – Compare Smart. Save More.**
